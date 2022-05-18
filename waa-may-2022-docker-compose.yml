@@ -4,7 +4,56 @@ networks:
   waa-may-2022:
     driver: bridge
 
+volumes:
+  postgres_data:
+    driver: local  #bridge
+
 services:
+  postgres:
+      image: postgres
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+      environment:
+        POSTGRES_DB: keycloak
+        POSTGRES_USER: keycloak
+        POSTGRES_PASSWORD: password
+      ports:
+        - 5432:5432
+
+  keycloak:
+      image: quay.io/keycloak/keycloak:legacy
+      environment:
+        DB_VENDOR: POSTGRES
+        DB_ADDR: postgres
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_SCHEMA: public
+        DB_PASSWORD: password
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: admin
+
+        # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
+
+        #JDBC_PARAMS: "ssl=true"
+      ports:
+        - 8080:8080
+      depends_on:
+        - postgres
+
+  postgresql:
+    image: postgres:latest
+    container_name: postgresql
+    networks:
+      - waa-may-2022
+    ports:
+      - 5433:5433
+    environment:
+      - POSTGRES_USER=postgresuser
+      - POSTGRES_PASSWORD=postgrespw
+      - POSTGRES_DB=postgresdb
+      - PGPASSWORD=postgrespw
+      
   client:
     container_name: client
     image: 'node:latest'
@@ -13,39 +62,29 @@ services:
     networks:
       - waa-may-2022
     ports:
-      - '3000:3000'
+      - 3000:3000
+    stdin_open: true
     entrypoint: /bin/sh
     command: -c "sleep 5 && cd /app/ && npm ci && npm run build && npm run start"
 
-  keycloak:
-    container_name: keycloak
-    image: 'bitnami/keycloak:latest'
-    networks:
-      - waa-may-2022    
-    ports:
-      - '8080:8080'  
+  # keycloak:
+  #   container_name: keycloak
+  #   image: 'bitnami/keycloak:latest'
+  #   networks:
+  #     - waa-may-2022    
+  #   ports:
+  #     - '8080:8080'  
 
   server:
     container_name: server
-    image: openjdk:17
+    image: docker.io/pms/waa:latest
     networks:
       - waa-may-2022
     ports:
       - 8081:8081
     volumes:
       - ./server:/usr/src/myapp
-    entrypoint: /bin/bash
-    command: -c "/usr/src/myapp/mvnw clean package -B && java -jar server-0.0.1-0.0.1-SNAPSHOT.jar --spring.config.location=file:application.yml"
+    # entrypoint: /bin/bash
+    # command: -c "/usr/src/myapp/mvnw clean package -B && java -jar server-0.0.1-0.0.1-SNAPSHOT.jar --spring.config.location=file:application.yml"
 
-  postgresql:
-    image: postgres:latest
-    container_name: postgresql
-    networks:
-      - waa-may-2022
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_USER=postgresuser
-      - POSTGRES_PASSWORD=postgrespw
-      - POSTGRES_DB=postgresdb
-      - PGPASSWORD=postgrespw
+  

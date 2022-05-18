@@ -34,9 +34,9 @@ spring:
   application:
     name: spring-security
   datasource:
-    password: postgres
-    url: jdbc:postgresql://localhost:5432/test
-    username: postgres
+    password: postgrespw
+    url: jdbc:postgresql://postgresql:5432/postgresdb
+    username: postgresuser
   jpa:
     hibernate:
       ddl-auto: create
